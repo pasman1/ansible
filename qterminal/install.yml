@@ -1,0 +1,6 @@
+#!/usr/bin/env -S ansible localhost -m inslude -a
+
+- apt: pkg=qterminal
+  become: yes
+  
+  

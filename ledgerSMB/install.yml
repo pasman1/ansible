@@ -1,0 +1,41 @@
+#!/usr/bin/env -S ansible localhost -vm include -a
+
+
+- vars:
+    version: 1.9.10
+    branch: 1.9
+
+  module_defaults: 
+    shell: { chdir: /usr/local/ledgersmb }
+  block:
+    - apt: pkg=starman,cpanminus,libdbd-pg-perl,liblocal-lib-perl,gcc,make,postgresql,postgresql-contrib
+    - git:
+        repo: "https://github.com/pasman1/LedgerSMB"
+        dest: /usr/local/ledgersmb
+        version: "{{version}}"
+        
+    - shell: cpanm --quiet --notest --installdeps .
+    - copy:
+        dest: /lib/systemd/system/ledgersmb19.service     
+        content: |
+          [Unit]
+          Description=LedgerSMB19
+          After=network.target
+          [Service]
+          WorkingDirectory=/usr/local/ledgersmb
+          # In case you installed dependencies into a 'local::lib'
+          # make sure you set the PERL5LIB environment variable
+          # to the correct location by uncommenting the line below
+          #Environment=PERL5LIB=/usr/local/lib/aarch64-linux-gnu/perl/5.32.1
+          #Environment=LSMB_CONFIG_FILE=/etc/ledgersmb/ledgersmb.conf
+          # Be sure to set a user and group below
+          # which don't have write access to the directories
+          # holding the LedgerSMB sources
+          User=ledgersmb
+          Group=ledgersmb
+          ExecStart=/usr/bin/starman --preload-app -I lib -I old/lib --listen localhost:5763  bin/ledgersmb-server.psgi
+          Restart=always
+          [Install]
+          WantedBy=multi-user.target
+    - systemd: name=ledgersmb19 enabled=yes
+  become: yes
